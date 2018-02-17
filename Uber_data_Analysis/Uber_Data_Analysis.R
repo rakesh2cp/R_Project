@@ -1,5 +1,5 @@
 ############################################################################################
-# Uber Data Analysis and   R Code for visualise the demand and supply gap for the cab      #
+# Uber Data Analysis  R Code for visualise the demand and supply gap for the cab           #
 # demand in Airport and City during different duration during the day especially during    #
 # peak hours when either cab demand is huge or trips are getting cancelled by drivers      #
 # due to various reasons.                                                                  #
@@ -11,9 +11,10 @@
 #import the required Library
 library(dplyr)
 library(lubridate)
+library(ggplot2)
 
 #Set The working Directory
-setwd("/Users/hduser/Desktop/Upgrad/Uber_Case/")
+setwd("path-to-your-workig-dir/Uber_data_Analysis")
 
 #Load the data in to R Data Frame uber_data
 uber_data <- read.csv("Uber_Request_Data.csv", header = TRUE, strip.white = TRUE, stringsAsFactors = FALSE)
