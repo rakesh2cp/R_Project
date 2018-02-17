@@ -1,11 +1,11 @@
 ############################################################################################
-# Uber assignment solution R Code for visualise the demand and supply gap for the cab      #
+# Uber Data Analysis and   R Code for visualise the demand and supply gap for the cab      #
 # demand in Airport and City during different duration during the day especially during    #
 # peak hours when either cab demand is huge or trips are getting cancelled by drivers      #
 # due to various reasons.                                                                  #
 #                                                                                          #
-# Submitted by Rakesh Pattanaik                                                            #
-# Roll No. - DDA1720036                                                                    #
+# Author:      Rakesh Pattanaik                                                            #
+#                                                                                          #
 ############################################################################################
 
 #import the required Library
