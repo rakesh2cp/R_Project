@@ -4,7 +4,7 @@
 # peak hours when either cab demand is huge or trips are getting cancelled by drivers      #
 # due to various reasons.                                                                  #
 #                                                                                          #
-# Author:      Rakesh Pattanaik                                                            #
+# Author:      Rakesh Pattanaik.                                                            #
 #                                                                                          #
 ############################################################################################
 
