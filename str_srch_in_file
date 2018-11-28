@@ -1,0 +1,64 @@
+# search in a file or files in a dir
+import re
+from os import listdir
+import os
+import os.path
+
+#import sklearn as sk
+
+
+
+sr_list = ['${hivevar:default}']
+#sr_list = ['JOBNAME=']
+substitutions = {"${hivevar:cty}": "sg"}
+
+fin_lst = []
+lst = []
+file_var = []
+#pb_var = 
+#pb_var = 
+
+my_dir = 'C:\\Users\\'
+#print(listdir(my_dir))
+my_files = [my_dir +"\\"+ f for f in listdir(my_dir) if os.path.isfile(os.path.join(my_dir, f))]
+
+
+
+
+def replace(string, substitutions):
+    substrings = sorted(substitutions, key=len, reverse=True)
+    regex = re.compile('|'.join(map(re.escape, substrings)))
+    return regex.sub(lambda match: substitutions[match.group(0)], string)
+
+
+for file_var in files:
+    with open(file_var) as fp:
+        for line in fp:
+            word = line.split()
+            #print(word)
+            for x in word:
+                #print(x)
+                for sr_str in sr_list:
+                    if sr_str in x:
+                        if x not in lst:
+                            lst.append(x.lower())
+words = [w.replace('${hivevar:cty}', 'sg') for w in lst]
+#print(type(words))
+for w in words:
+    line = replace(w, substitutions)
+    fin_lst.append(line)
+
+fin_lst.sort()
+# for i in fin_lst:
+#     print(i + ";")
+
+print(len(fin_lst))
+
+
+fin_lst = [w.replace('a', 'b') for w in fin_lst]
+for j in fin_lst:
+    print("alter table " + j + " add if not exists partition (partition='2018_05_31');")
+# print(len(fin_lst))
+
+# for j in fin_lst:
+#     print("select partition,count(*) from  " + j + " where partition in ('2018_03_12','2018_03_09') group by partition;")
