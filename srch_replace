@@ -7,3 +7,10 @@ def replace(string, substitutions):
     return regex.sub(lambda match: substitutions[match.group(0)], string)
 # List comprehention
 words = [w.replace('a', 'a1') for w in lst]
+
+#replace lines containing COMMENT in a file
+with open(file_var) as fp:
+           for line in fp:
+                line1 = re.sub('COMMENT.*?,','',line, flags=re.DOTALL)
+                line2 = replace(line1, substitutions)
+                fin_lst.append(line2)
