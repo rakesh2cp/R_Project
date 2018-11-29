@@ -1,0 +1,9 @@
+from datetime import datetime
+dt='20180104'
+def date_builder(dt):
+    #dt_obj = datetime.strptime(dt,'%Y%m%d')
+    #print(datetime.strftime(dt_obj,'%Y_%m_%d'))
+    return datetime.strftime(datetime.strptime(dt,'%Y%m%d'),'%Y_%m_%d')
+
+my_dt = date_builder(dt)
+print(my_dt)
