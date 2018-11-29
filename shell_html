@@ -1,0 +1,212 @@
+#!/bin/bash
+
+
+
+my_date=$1
+
+RUN_DATE=`date -d "$my_date -1 day" '+%Y-%m-%d'`
+RUN_DATE1=`date -d "$my_date -1 day" '+%Y_%m_%d'`
+MAIL_DATE=`date -d "$my_date -1 day" '+%Y%m%d'`
+PREVIOUSODS1=`date -d "$my_date -365 day" '+%Y-%m-%d'` 
+CURR_PARTITION=`date -d $RUN_DATE '+%Y-%m-%d'  | tr '-' '_' `
+PREVIOUSODS=`date -d $PREVIOUSODS1 '+%Y-%m-%d'  | tr '-' '_' `
+WEEK_ODS=`date -d "$my_date -7 day" '+%Y-%m-%d'`
+PREV_PARTITION=`date -d $WEEK_ODS '+%Y-%m-%d'  | tr '-' '_' `
+REP_TIME=`date +'%Y-%m-%d %H:%M:%S'`
+
+log_path="$PROCESSING_BASE_PATH/logs"
+log_file=${log_path}/"processing_log_`date -u +'%Y%m%d%H%M%S'`.log"
+
+data_path="$DATA_BASE_PATH/data"
+
+# Let's save start datetime
+start_dttm=`date +'%Y-%m-%d %H:%M:%S'`
+
+dt=$1
+dt=`date -d $dt +'%Y-%m-%d'`
+
+
+
+echo "###################################################################"
+#######################################
+# Prepare output file name and other params #
+#######################################
+
+my_func(){
+out_filename=my_html_file
+echo "Out filename: ${out_filename}.html"
+  
+HEADERFILE='<html>
+<head>
+<title>Report1</title>
+<STYLE TYPE="text/css">
+<!--
+TD{font-family: Arial; font-size: 10pt;}
+TH{font-family: Arial; font-size: 10pt; font-weight: bold; color:green; text-align: center; width:100px}
+H6{font-family: Arial; font-size: 10pt; color:green; border: none; text-align: left;}
+body{font-family: Arial; font-size: 10pt;}
+--->
+</STYLE>
+
+</head>
+<body>'
+TABLE_BODY_PBR='
+<br>
+<br>
+<table border="1">
+<tr style="text-align:center"><th style="text-align:center" colspan="4">Report1</th></tr>
+<tr style="text-align:center"><th> System</th><th> Code</th><th> Date</th><th>Count</th></tr>'
+
+TABLE_BODY_SET='
+<br>
+<br>
+<table border="1">
+<tr style="text-align:center"><th style="text-align:center" colspan="4">Report</th></tr>
+<tr style="text-align:center"><th> System</th><th> Code</th><th> Date</th><th>Count</th></tr>'
+
+TABLE_BODY_FLG='
+<br>
+<br>
+<table border="1">
+<tr style="text-align:center"><th style="text-align:center" colspan="4">Report</th></tr>
+<tr style="text-align:center"><th> System</th><th> Code</th><th> Date</th><th>Count</th></tr>'
+
+TABLE_BODY_FILE='
+<br>
+<br>
+<table border="1">
+<tr style="text-align:center"><th style="text-align:center" colspan="4"> Count Report</th></tr>
+<tr style="text-align:center"><th>File Name</th><th>Count</th></tr>'
+
+  TABLE_TRAILERFILE='</table>'
+  
+  BODY_TRAILERFILE='</body>
+</html>'
+
+  MAILBODYFILE='<br><p>Dear All,<br><br>
+Please find details of files. <br><br>
+
+
+Thanks & Regards,<br>
+My Team <br><br>
+
+ </p>'
+MAILBRKFILE='<br><p>
+ </p>'
+
+  HTMLFILE=${out_filename}.html
+  rm -f ${out_filename}.html
+  FILE_CSV=${out_filename}.csv
+  FILE_CSV=${out_filename}_2.csv
+  FILE_CSV=${out_filename}_3.csv
+  FILE_CNT=${out_filename}_4.csv
+  SUBJECT='Daily Report'
+  to='email@gmail.com'
+  cc=''
+  bcc=''
+
+#######################
+# Execute Hive script #
+#######################
+# Execute a script to create a view to export data into HDFS.
+ods="${yr}_${mm}_${dd}"
+
+#hive --hiveconf ODS=${ODS}  -e "select src,code,date,count(*) from my_db.mytab where run_date = '${RUN_DATE1}' group by  src,code,date order by src desc" > ${FILE_CSV}
+
+#hive --hiveconf ODS=${ODS}  -e "select src,code,date,count(*) from my_db.mytab where run_date = '${RUN_DATE1}' group by  src,code,date order by src desc" > ${FILE_CSV}
+
+#hive --hiveconf ODS=${ODS}  -e "select src,code,date,count(*) from my_db.mytab where run_date = '${RUN_DATE1}' group by  src,code,date order by src desc" > ${FILE_CSV}
+
+
+#find . -type f -name "Myfile*${MAIL_DATE}*.csv" -exec ls {} \; | xargs wc -l | awk '{ print $2 "\t" $1-3}' | head -9 | sed 's/.\///' > ${ALL_FILE_CNT}
+
+#ile Cnt
+find . -type f -name "myfile*${MAIL_DATE}*.csv" -exec ls {} \; | xargs wc -l | awk '{ print $2 "\t" $1-3}' | head -9 | sed 's/a//' | sort -nr > ${ALL_FILE_CNT}
+
+
+
+########################################
+#           Prepare-Report             #
+########################################
+echo "#!/bin/ksh" > ${HTMLFILE}
+echo "(" >> ${HTMLFILE}
+#echo "echo \"From: ${to}\""  >> ${HTMLFILE}
+echo "echo \"To: ${to}\""  >> ${HTMLFILE}
+echo "echo \"Cc: ${cc}\""  >> ${HTMLFILE}
+echo "echo \"Subject: ${SUBJECT}:$dt\"">> ${HTMLFILE}
+echo "echo \"Content-Type: text/html\"" >> ${HTMLFILE}
+echo "echo \"${HEADERFILE} " >> ${HTMLFILE}
+
+echo ${TABLE_BODY_PBR} >> ${HTMLFILE}
+
+
+	if [ -f "${FILE_CSV}" ]
+	then
+		sed "s/\t/<\/td><td>/g" ${FILE_CSV} | while read line
+		do
+		printf "<tr><td>${line}</td></tr>\n" >> ${HTMLFILE}
+		done
+	fi
+	
+echo ${TABLE_TRAILERFILE} >> ${HTMLFILE}
+
+
+echo ${TABLE_BODY_SET} >> ${HTMLFILE}
+
+
+	if [ -f "${FILE_CSV}" ]
+	then
+		sed "s/\t/<\/td><td>/g" ${FILE_CSV} | while read line
+		do
+		printf "<tr><td>${line}</td></tr>\n" >> ${HTMLFILE}
+		done
+	fi
+echo ${TABLE_TRAILERFILE} >> ${HTMLFILE}
+
+echo ${TABLE_BODY_FLG} >> ${HTMLFILE}
+
+	if [ -f "${FILE_CSV}" ]
+	then
+		sed "s/\t/<\/td><td>/g" ${FILE_CSV} | while read line
+		do
+		printf "<tr><td>${line}</td></tr>\n" >> ${HTMLFILE}
+		done
+	fi
+
+echo ${TABLE_TRAILERFILE} >> ${HTMLFILE}
+
+echo ${TABLE_BODY_FILE} >> ${HTMLFILE}
+
+	if [ -f "${ALL_FILE_CNT}" ]
+	then
+		sed "s/\t/<\/td><td>/g" ${ALL_FILE_CNT} | while read line
+		do
+		printf "<tr><td>${line}</td></tr>\n" >> ${HTMLFILE}
+		done
+	fi
+
+echo ${TABLE_TRAILERFILE} >> ${HTMLFILE}
+
+echo ${MAILBODYFILE} >> ${HTMLFILE}
+echo ${BODY_TRAILERFILE} >> ${HTMLFILE}
+echo "Today files transferred around ${REP_TIME}" >> ${HTMLFILE}
+echo ${MAILBRKFILE} >> ${HTMLFILE}
+echo "Note: This is an auto generated email. Please do not reply." >> ${HTMLFILE}
+echo "\""  >> ${HTMLFILE}
+echo "echo ) | /usr/sbin/sendmail -t" >> ${HTMLFILE}
+
+#echo "File should be transferred via SMTP...."
+   
+   sh  ${HTMLFILE}
+   rc=$?
+   if [[ $rc != 0 ]]
+   then
+   echo "ERROR while sending mail ${rc} : ${msg}"
+   #exit 9
+   fi
+}
+
+
+my_func
+
+exit 0
