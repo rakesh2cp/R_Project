@@ -1,0 +1,39 @@
+sr_list = ['elem2'
+,'elem1']
+
+file_var='my.log'
+import re
+fin_lst=[]
+substitutions = {'Info : Processing date is ':'','\n':''}
+def replace(string, substitutions):
+    substrings = sorted(substitutions, key=len, reverse=True)
+    regex = re.compile('|'.join(map(re.escape, substrings)))
+    return regex.sub(lambda match: substitutions[match.group(0)], string)
+with open(file_var) as fp:
+           for line in fp:
+                #print(line)
+                if 'Processing' in line:
+                    #fin_lst.append(line)
+                    line1 = replace(line, substitutions)
+                    fin_lst.append(line1)
+                    
+
+#print(fin_lst)
+#for tab_name in sr_list:
+#    if tab_name in 
+result =  all(elem in fin_lst  for elem in sr_list)
+#if result:
+#    print("Yes, list1 contains all elements in list2")    
+#else :
+#    print("No, list1 does not contains all elements in list2")
+#print("Additional values in First list:",list((set(sr_list).difference(fin_lst))))
+diff_list = list((set(sr_list).difference(fin_lst)))
+#print(type(diff_list))
+y = []
+z = [1]
+for x in diff_list:
+    y.append(x[:6])
+    #print(x[:6])
+fnl = set(y)
+for i in fnl:
+    print(i)
