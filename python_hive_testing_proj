@@ -1,0 +1,327 @@
+import os
+import os.path
+import errno
+import subprocess
+#import datetime
+import sys
+from datetime import datetime
+import datetime
+
+conf = ['/my.conf']
+filename = "/insert.hql"
+db_name = "fnl_db."
+delim = ","
+dt = "20180104"
+#dt = sys.argv[1]
+part_col = "part="
+log_time = datetime.datetime.today().strftime('%Y_%m_%d')
+db = "mapping"
+tbl = "mapping_tbl"
+#set hive.compute.query.using.stats=false;
+
+def conf_create(main_conf):
+    for file_var in main_conf:
+        with open(file_var) as fp:
+            for line in fp:
+                my_db, my_tbl, my_fnl_db, my_fnl_tbl, my_fnl_map_col, my_tbl, my_flag = line.split("|")
+    return my_db, my_tbl, my_fnl_db, my_fnl_tbl, my_fnl_map_col, my_tbl, my_flag
+
+
+def get_columns(dbname, table_name):
+    cmdping = "hive -e 'show columns in %s.%s'" % (dbname, table_name)
+    p = subprocess.Popen(cmdping, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        return stdout.strip('\n').split()
+    else:
+        logger(True, "Table/database is not correct")
+
+
+def silentremove(filename):
+    try:
+        os.remove(filename)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise
+
+
+def query_create(filename, db_query):
+    silentremove(filename)
+    f = open(filename, "w")
+    f.write(db_query + "\n")
+    logger(True, "Query File Created")
+
+
+def recon_chk(dbname, table_name, part_str, dt):
+    cnt_qry = "hive -e \"select count(*) from %s.%s where %s='%s'\"" % (dbname, table_name, part_str, dt)
+    #print(cnt_qry)
+    p = subprocess.Popen(cnt_qry, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        return stdout.strip('\n')
+    else:
+        logger(True, "Table/database is not correct")
+
+
+# def recon_match(src_cnt, dest_cnt, my_tbl, my_fnl_tbl):
+#     if src_cnt == dest_cnt:
+#         return recon_status = "SUCCESS"
+#         logger(True,"Recon Match")
+#     else:
+#         return recon_status = "FAILED"
+#         logger(True, "Recon Mismatch for " + "source table " + my_tbl + " final table " + my_fnl_tbl)
+
+def recon_match(src_cnt, dest_cnt, my_tbl, my_fnl_tbl,recon_status):
+    recon_status == ""
+    if src_cnt == dest_cnt:
+        recon_status = "SUCCESS"
+        #print(recon_status)
+        return recon_status
+        logger(True, "Recon Match")
+    else:
+        recon_status = "FAILED"
+        #print(recon_status)
+        return recon_status
+        logger(True, "Recon Mismatch for " + "source table " + my_tbl + " final table " + my_fnl_tbl)
+
+
+def populate_fnl_tbl(my_fnl_db, my_fnl_tbl,part_str,dt,my_db,my_tbl,qry_path):
+    fnl_tbl_qry = "hive --hivevar my_fnl_db=%s --hivevar my_fnl_tbl=%s --hivevar part_str=%s --hivevar dt=%s --hivevar my_db=%s --hivevar  my_tbl=%s -f %s" % (my_fnl_db, my_fnl_tbl, part_str, dt, my_db, my_tbl, qry_path)
+    #print(fnl_tbl_qry)
+    p = subprocess.Popen(fnl_tbl_qry, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        logger(True, stdout)
+        return stdout.strip('\n')
+    else:
+        logger(True, stderr)
+    pass
+
+
+def drop_partition(dbname, table_name, dt):
+    drop_qry = "hive -e \"ALTER TABLE %s.%s DROP IF EXISTS PARTITION(part='%s')\"" % (dbname, table_name,dt)
+    p = subprocess.Popen(drop_qry, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        return stdout.strip('\n')
+    else:
+        logger(True, "Table/database is not correct")
+    pass
+
+
+def delete_hdfs_path(dbname, table_name, dt):
+    delete_qry = "hdfs dfs -rm -r " % (dbname, table_name, dt)
+    p = subprocess.Popen(delete_qry, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        return stdout.strip('\n')
+    else:
+        logger(True, "Table/database is not correct")
+    pass
+    pass
+
+
+def db_query_builder(col_name, my_fnl_db, my_fnl_tbl, my_db, my_tbl, part_str, dt, my_fnl_map_col, tab_type):
+    if tab_type == 'tab1':
+        db_query = "INSERT INTO table " + my_fnl_db + "." + my_fnl_tbl + " partition(part='20180104') select " + ",".join(col_name) + " " \
+        " from (select * from " + my_db + "." + my_tbl + " where " + part_str + " = '" + dt + "') as my_tbl left join \
+        ( select * from " + my_db + "." + my_tbl + ") as my_tbl on (my_tbl.country = my_tbl.countrycode and my_tbl." + my_fnl_map_col + " = my_tbl.rel_no);"
+    elif tab_type == 'tab2':
+        db_query = "INSERT INTO table " + my_fnl_db + "." + my_fnl_tbl + " partition(part='20180104') select " + ",".join(
+            col_name) + " " \
+                        " from (select * from " + my_db + "." + my_tbl + " where " + part_str + " = '" + dt + "') as my_tbl left join \
+                                        ( select * from " + my_db + "." + my_tbl + ") as my_tbl on (my_tbl." + my_fnl_map_col + " = my_tbl.rel_no);"
+    
+    return db_query
+
+
+def date_builder(tab_type, my_dt):
+    if tab_type == 'tab1':
+        return datetime.strftime(datetime.strptime(my_dt,'%Y%m%d'),'%Y_%m_%d')
+    elif tab_type == 'tab2':
+        return datetime.strftime(datetime.strptime(my_dt, '%Y%m%d'), '%Y-%m-%d')
+    pass
+
+
+def recon_update(dbname, table_name, dt, my_tbl, my_fnl_tbl, src_cnt, dest_cnt, recon_status, recon_time):
+    recon_qry = "hive -e \"insert into TABLE %s.%s values('%s','%s','%s', '%s','%s','%s','%s')\"" % (dbname, table_name, dt, my_tbl, my_fnl_tbl, src_cnt, dest_cnt, recon_status, recon_time)
+    print(recon_qry)
+    p = subprocess.Popen(recon_qry, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        return stdout.strip('\n')
+    else:
+        print(stderr)
+        logger(True, stderr)
+        logger(True, "Table/database is not correct")
+    pass
+
+
+def tab_type_chk(tab_name):
+    tab_type = ['tabl', 'tab2', 'tab3', 'tab4', 'tab5', 'tab6', 'tab7', 'tab8', 'tab9','tabl0']
+    for x in tab_type:
+        if x in tab_name:
+            tab_type = x
+    return tab_type
+
+
+def my_population(my_db, my_tbl,my_fnl_map_col,my_fnl_db, my_fnl_tbl, dt):
+    logger(False, my_tbl + " is a my table")
+    src_path = hdfs_path_discover(my_db, my_tbl)
+    src_path_list = src_path
+    src_matching = [s.replace('\'', '') for s in src_path_list if "hdfs://" in s]
+    src_path_str = ''.join(str(e) for e in src_matching)
+    part_str = part_col_build(src_path_str)
+    logger(False, " part is " + part_str)
+    col_names = get_columns(my_db, my_tbl)
+    col_names.remove(part_str)
+    col_name = [db_name + x for x in col_names]
+    col_name.append("my_tbl." + "my_id")
+    tab_type = tab_type_chk(my_tbl)
+    db_query = db_query_builder(col_name, my_fnl_db, my_fnl_tbl, my_db, my_tbl, part_str, dt, my_fnl_map_col,tab_type)
+    #print(db_query)
+    query_create(filename, db_query)
+    qry_path = os.path.abspath(filename)
+    populate_fnl_tbl(my_fnl_db, my_fnl_tbl,part_str,dt,my_db,my_tbl,qry_path)
+    src_cnt = recon_chk(my_db, my_tbl, part_str, dt)
+    logger(True, "Source count is --> " + src_cnt)
+    dest_cnt = recon_chk(my_fnl_db, my_fnl_tbl, part_str, dt)
+    logger(True, "Final count is --> " + dest_cnt)
+    recon_status = ""
+    recon_status = recon_match(src_cnt, dest_cnt, my_tbl, my_fnl_tbl, recon_status)
+    print(recon_status)
+    dbname = 'recon'
+    table_name = 'status'
+    recon_time = datetime.datetime.today().strftime('%Y_%m_%d %H:%M:%S')
+    recon_update(dbname, table_name, dt, my_tbl, my_fnl_tbl, src_cnt, dest_cnt, recon_status, recon_time)
+    print("recon complete")
+
+
+def my_cnty_population(my_db, my_tbl,my_fnl_map_col,my_fnl_db, my_fnl_tbl, dt, cnty_flg):
+    logger(True, my_tbl + " is a my new cnty table")
+    col_names = get_columns(my_db, my_tbl)
+    col_names.remove('part')
+    col_name = [db_name + x for x in col_names]
+    col_name.append("my_tbl." + my_fnl_map_col)
+    db_query = "INSERT INTO table ${hivevar:my_fnl_db}.${hivevar:my_fnl_tbl} partition(part='${hivevar:part}') select " + ",\n".join(col_name) + " from (select * from ${hivevar:my_db}.${hivevar:my_tbl} where part='${hivevar:part}') as my_tbl left join ( select * from ${hivevar:my_db}.${hivevar:my_tbl} where part='${hivevar:part}'" + "and cnty =" + cnty_flg + " ) as my_tbl on (my_tbl.${hivevar:my_fnl_map_col} = my_tbl.${hivevar:my_fnl_map_col});"
+    query_create(cnty_filename, db_query)
+    src_cnt = recon_chk(my_db, my_tbl, dt)
+    logger(True, "Source count is --> " + src_cnt)
+    dest_cnt = recon_chk(my_fnl_db, my_fnl_tbl, dt)
+    logger(True, "Final count is --> " + dest_cnt)
+    recon_match(src_cnt, dest_cnt, my_tbl, my_fnl_tbl)
+
+
+def hdfs_path_discover(dbname, table_name):
+    getpath = "hive -e 'show create table %s.%s'" % (dbname, table_name)
+    p = subprocess.Popen(getpath, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        return stdout.strip('\n').split()
+    else:
+        logger(True, "Table/database is not correct")
+
+
+def repair_table(dbname, table_name):
+    logger(True, "Now Repairing table " + dbname + "." + table_name)
+    msck_cmd = "hive -e 'msck repair table %s.%s'" % (dbname, table_name)
+    p = subprocess.Popen(msck_cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != '' :
+        #print(stdout)
+        #print(len(stdout.strip('\n').split()))
+        return stdout.strip('\n').split()
+    else:
+        print(stderr)
+        logger(True, "Table/database is not correct")
+
+
+def hdfs_cp(src_path_part, dest_path_part):
+    copy_cmd = "hdfs dfs -cp %s %s" % (src_path_part, dest_path_part)
+    p = subprocess.Popen(copy_cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) == 0:
+        logger(True, "Files Copied Successfully")
+    else:
+        logger(True, "Source/Destination path is not correct")
+
+
+def hdfs_path_build(src_path_str, dest_path_str, part_col, dt):
+    src_path_part = src_path_str + "/" + part_col + dt
+    dest_path_part = dest_path_str + "/" + part_col + dt
+    return src_path_part, dest_path_part
+
+
+def part_col_build(path_str):
+    #print(type(path_str))
+    #print(path_str)
+    logger(False, path_str)
+    hdfs_path = "hdfs dfs -ls %s | head -2 | tail -1 | awk '{ print $8}'" % path_str
+    p = subprocess.Popen(hdfs_path, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    (stdout, stderr) = p.communicate()
+    if len(stdout.strip('\n').split()) != 0:
+        part_col = stdout.split('=')[0].split('/')[-1]
+        #print("parttition col is " + part_col)
+        return part_col
+    else:
+        logger(True, stderr)
+
+
+def logger(onConsole, msg):
+    f = open("log/" + "my_population" + "_" + log_time + ".log", "a+")
+    f.write(msg + "\n")
+    if (onConsole):
+        print(msg)
+    f.close()
+
+
+def hdfs_copy(my_db, my_tbl, my_fnl_db, my_fnl_tbl, dt, part_col):
+    src_path = hdfs_path_discover(my_db, my_tbl)
+    src_path_list = src_path
+    src_matching = [s.replace('\'', '') for s in src_path_list if "hdfs://" in s]
+    src_path_str = ''.join(str(e) for e in src_matching)
+    dest_path = hdfs_path_discover(my_fnl_db, my_fnl_tbl)
+    #print(dest_path)
+    dest_path_list = dest_path
+    #print(dest_path_list)
+    part_str = part_col_build(src_path_str)
+    #print(part_str)
+    dest_matching = [s.replace('\'', '') for s in dest_path_list if "hdfs://" in s]
+    #print(dest_path_list)
+    dest_path_str = ''.join(str(e) for e in dest_matching)
+    src_path_part, dest_path_part = hdfs_path_build(src_path_str, dest_path_str, part_col, dt)
+    hdfs_cp(src_path_part, dest_path_str)
+    repair_table(my_fnl_db, my_fnl_tbl)
+    src_cnt = recon_chk(my_db, my_tbl, part_str, dt)
+    logger(True, "source count is --> " + src_cnt)
+    dest_cnt = recon_chk(my_fnl_db, my_fnl_tbl, part_str, dt)
+    logger(True, "Final count is --> " + dest_cnt)
+    recon_time = datetime.datetime.today().strftime('%Y_%m_%d %H:%M:%S')
+    recon_status = ""
+    recon_status = recon_match(src_cnt, dest_cnt, my_tbl, my_fnl_tbl, recon_status)
+    dbname = 'recon'
+    table_name = 'status'
+    recon_update(dbname, table_name, dt, my_tbl, my_fnl_tbl, src_cnt, dest_cnt, recon_status, recon_time)
+    print("recon complete")
+
+
+if __name__ == '__main__':
+    for file_var in main_conf:
+        with open(file_var) as fp:
+            for line in fp:
+                my_db, my_tbl, my_fnl_db, my_fnl_tbl, my_fnl_map_col, my_tbl, my_flag, cnty_flg = line.split("|")
+                if my_flag == 'Y':
+                    logger(True, my_tbl + " is a my table. Populating the My table.")
+                    #print("".join(cnty_flg.split("\n")))
+                    if len("".join(cnty_flg.split("\n"))) == 2:
+                        logger(True, "my table with cnty code found " + cnty_flg)
+                        #print(len(cnty_flg))
+                    elif len("".join(cnty_flg.split("\n"))) == 1:
+                        logger(False, "my table with no cnty code found doing my population with no cnty code")
+                        #print(len(cnty_flg))
+                        #my_cnty_population()
+                        my_population(my_db, my_tbl, my_fnl_map_col, my_fnl_db, my_fnl_tbl, dt)
+                elif my_flag == 'N':
+                    logger(True, "No my table found doing HDFS copy For " + my_tbl)
+                    #my_cnty_population()
+                    hdfs_copy(my_db, my_tbl, my_fnl_db, my_fnl_tbl, dt, part_col)
