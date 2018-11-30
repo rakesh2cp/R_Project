@@ -1,0 +1,22 @@
+RUN_DATE=`date -d "$my_date -1 day" '+%Y-%m-%d'`
+PREVIOUSDATE=`date -d "$my_date -365 day" '+%Y-%m-%d'` 
+CURR_PARTITION=`date -d $RUN_DATE '+%Y-%m-%d'  | tr '-' '_' `
+PREVIOUSDATE=`date -d $PREVIOUSDATE1 '+%Y-%m-%d'  | tr '-' '_' `
+WEEK_DATE=`date -d "$my_date -7 day" '+%Y-%m-%d'`
+PREV_PARTITION=`date -d $WEEK_DATE '+%Y-%m-%d'  | tr '-' '_' `
+
+tab1=TAB1
+tab2=TAB2
+tab3=TAB3
+tab4=TAB4
+
+DATE_set=`hive -e "select TAB1.*, TAB2.*, TAB3.*,TAB4.* from
+(select max(DATE) from MY_DB.${TAB1} WHERE DATE <= '${LAST_MNTH_DT}') TAB1,
+(select max(DATE) from MY_DB.${TAB2} WHERE DATE <= '${LAST_MNTH_DT}') TAB2,
+(select max(DATE) from MY_DB.${TAB3} WHERE DATE <= '${LAST_MNTH_DT}') TAB3,
+(select max(DATE) from MY_DB.${TAB4} WHERE DATE <= '${LAST_MNTH_DT}') TAB4;" | sed 's/[\t]/,/g'`
+
+TAB1=`echo ${DATE_set}|awk -F "," '{ print $1}'`
+TAB2=`echo ${DATE_set}|awk -F "," '{ print $2}'`
+TAB3=`echo ${DATE_set}|awk -F "," '{ print $3}'`
+TAB4=`echo ${DATE_set}|awk -F "," '{ print $4}'`
