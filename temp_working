@@ -1,0 +1,106 @@
+data_file="/home/oracle/rakesh/data.csv"
+rc=`wc -l $data_file | awk '{print $1-1}'`
+REP_TIME=date -d '1 days ago' +'%Y-%m-%d'
+echo -e "Name \tAge \t$REP_TIME \t$rc" > 
+
+-- red text shell script
+echo -e "\e[1;31mThis is red text\e[0m"
+
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
+echo "${red}red text ${green}green text${reset}"
+
+spark rank fun test
+
+
+import org.apache.spark.sql.expressions.Window
+import org.apache.spark.sql.functions.row_number
+
+val df = Seq(("A100", 1000), ("A100", 500), ("B100", 600), ("B100", 200)).toDF("accountNumber", "assetValue")
+
+df.withColumn("rank", row_number().over(Window.partitionBy($"accountNumber").orderBy($"assetValue".desc))).show
+
+JARS=$(files=(*.jar); IFS=,; echo "${files[*]}")
+
+
+--kafa topic publish
+
+sh /opt/cloudera/parcels/KAFKA-2.1.1-1.2.1.1.p0.18/lib/kafka/bin/connect-standalone.sh /home/oracle/ingestion/kafka/rfclaim_worker.properties temp_conn.properties
+
+
+---
+
+sqoop export to oracle/bda1@wda
+
+sqoop export \
+  --connect jdbc:postgresql://10.10.11.11:1234/db \
+  --table table1 \
+  --username user \
+  --password pwd \
+  --export-dir /myhivetable/data/ \
+  --columns "DC2,DC3,DC5,DC4,DC9,DC10,DC6,DC1,DC8,DC7" \
+  --fields-terminated-by '|' \
+  --lines-terminated-by '\n' \
+  --input-null-string "\\\\N" \
+  --input-null-non-string "\\\\N"
+  
+  
+  
+  :%j -- vi join lines
+  
+ hive -e 'set hive.cli.print.header=true; select * from db.table' | sed 's/[\t]/,/g'  > /home/rakesh/file_`date +'%Y_%m_%d'`.csv
+ 
+ 
+ 
+ import org.slf4j.LoggerFactory
+import org.apache.spark.sql.{ SparkSession, DataFrame }
+import org.apache.spark.sql.functions.{from_json, col }
+import java.text.SimpleDateFormat;
+import java.util.{ TimeZone, Date, Calendar, Properties }
+import java.sql.DriverManager
+import org.apache.spark.sql.types.{ StructField, StructType }
+import org.apache.spark.sql.types.{ DecimalType, StringType, LongType }
+import org.apache.spark.sql.types.DataType._
+import scala.collection.Seq
+//import java.sql._
+import java.sql.{Array=>SQLArray, _}
+import org.apache.spark.sql.ForeachWriter
+import org.slf4j.LoggerFactory
+import org.apache.spark.sql
+//import org.apache.spark.sql.Row
+import org.apache.spark.sql.{SparkSession, SaveMode, Row}
+
+var run_date=20190217
+var day=30
+val driver = "oracle.jdbc.driver.OracleDriver"
+var connection:Connection = _
+var statement:Statement = _
+
+val driver = "oracle.jdbc.driver.OracleDriver"
+var jdbcUrl = "jdbc:oracle:thin:@192.168.100.100:1000:db1"
+var jdbcUsername = "user"
+var jdbcPassword =  "pass"
+
+val driver = "oracle.jdbc.driver.OracleDriver"
+var jdbcUrl = "jdbc:oracle:thin:@192.168.100.100:1000:db1"
+var jdbcUsername = "user"
+var jdbcPassword =  "pass"
+
+val connection = DriverManager.getConnection(jdbcUrl, jdbcUsername, jdbcPassword)
+statement = connection.createStatement
+
+var run_date=20190217
+var criteria=30
+val extract_qry = s"""select COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 from db.tab where run_date = '$run_date' and day = '$day'"""
+
+val hiveData = spark.sql(extract_qry)
+
+
+hiveData.collect().foreach { row =>
+   //println(row.mkString("('", "', '", "')"))
+   //val sql_str = row.mkString("('", "', '", "')")
+   val sql_str = "INSERT INTO db.tab (COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1 ,COL1) VALUES " + row.mkString("('", "', '", "')")
+   //println(sql_str)
+   statement.executeUpdate(sql_str)
+   }
